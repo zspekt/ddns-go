@@ -2,8 +2,14 @@ package ip
 
 import (
 	"context"
-	"log"
+	"errors"
+	"io"
+	"io/fs"
+	"log/slog"
+	"net/netip"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/zspekt/ddns-go/src/dns"
 )
@@ -29,7 +35,7 @@ func MonitorAndUpdate(c *Config) {
 	for {
 		select {
 		case ip := <-c.ipChan:
-			err := monitorAndUpdate(&config{
+			err := handleIPCheck(&config{
 				ip:       ip,
 				filename: c.filename,
 				token:    c.token,
@@ -43,26 +49,71 @@ func MonitorAndUpdate(c *Config) {
 	}
 }
 
-// compares given IP to the stored value, updating it if necessary. returns true
-// only if given IP matches the value. if no value was stored (file didn't exist),
-// or it differs from the one passed in, it returns false.
-func compareAndStoreIP(ip string) bool { return false } // TODO: implement
-
-func monitorAndUpdate(c *config) error {
-	f, err := os.OpenFile(c.filename, os.O_RDWR, 0666)
+// checks the new IP against the stored value. if it differs, it will call
+// dns.UpdateDnsRecord()
+func handleIPCheck(c *config) error {
+	f, err := os.OpenFile(c.filename, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
-		return err // TODO: decide what to do with errors
+		if errors.Is(err, fs.ErrNotExist) {
+		}
+		return err
 	}
+	defer f.Close()
 
 	if !ipHasChanged(c.ip, f) {
-		// if it hasn't changed we do nothing and return
+		slog.Debug("IP hasn't changed", "IP", c.ip)
 		return nil
 	}
 
-	dns.UpdateDnsRecord()
+	err = dns.UpdateRecord(c.ip, c.token)
+	if err != nil {
+		return err
+	}
+
+	err = updateIP(f, c.ip)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func ipHasChanged(ip string, f *os.File) bool {
-	f.Read(nil)
-	// TODO: implement
+func ipHasChanged(newIp string, r io.Reader) bool {
+	slog.Debug("ipHasChanged() called...")
+	buf := make([]byte, 15)
+	_, err := r.Read(buf)
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
+			slog.Error("ipHasChanged(): error reading file", "error", err)
+			return false
+		}
+	}
+
+	c := strings.TrimSuffix(string(buf), "\n\x00")
+	oldIp, err := netip.ParseAddr(c)
+	if err != nil {
+		slog.Error("ipHasChanged(): error parsing address", "error", err, "ip", string(buf))
+	}
+	return !strings.EqualFold(newIp, oldIp.String())
+}
+
+func ipRegexp(b []byte) []byte {
+	// netip.ParseAddr(s string)
+	r := regexp.MustCompile(`[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}`)
+	return r.Find(b)
+}
+
+func updateIP(f *os.File, ip string) error {
+	err := f.Truncate(0)
+	if err != nil {
+		return err
+	}
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write([]byte(ip))
+	if err != nil {
+		return err
+	}
+	return nil
 }

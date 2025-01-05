@@ -17,7 +17,7 @@ import (
 // makes the put request to cloudflare's api to update all A records to point
 // to the ip that's been passed in. returns any error found throughout the execution
 // of the function, or any error from cloudflare's response
-func UpdateDnsRecord(ip, token string) error {
+func UpdateRecord(ip, token string) error {
 	client := http.Client{Timeout: 10 * time.Second}
 	var baseURL string = "https://api.cloudflare.com/client/v4"
 
@@ -32,13 +32,13 @@ func UpdateDnsRecord(ip, token string) error {
 		log.Fatal(err) // TODO: don't crash
 	}
 
-	filteredDNSRecords := filterDNSRecords(DNSRecords.Result, "A", filterDNSRecsWithType)
+	filteredDNSRecords := filterRecords(DNSRecords.Result, "A", filterRecordsWithType)
 
 	fmt.Println("final filtered dns records ahead === === === === === === === ")
 	fmt.Println(pretty.Println(filteredDNSRecords))
 
 	for _, d := range filteredDNSRecords {
-		r, err := dnsPutRequest(
+		r, err := putRecord(
 			&client,
 			d,
 			ip,
@@ -79,7 +79,7 @@ func getDNSRecords(client *http.Client, baseURL, zoneID, token string) (*DNSReco
 	return DNSRecords, err
 }
 
-func dnsPutRequest(client *http.Client, rec DNSRecord, ip, token string) (*http.Response, error) {
+func putRecord(client *http.Client, rec DNSRecord, ip, token string) (*http.Response, error) {
 	d := DNSPutRequest{
 		Comment:  "go ddns lol",
 		Name:     rec.Name,
@@ -108,7 +108,7 @@ func dnsPutRequest(client *http.Client, rec DNSRecord, ip, token string) (*http.
 	return client.Do(req)
 }
 
-func filterDNSRecords(rs []DNSRecord, t string, f func(DNSRecord, string) bool) []DNSRecord {
+func filterRecords(rs []DNSRecord, t string, f func(DNSRecord, string) bool) []DNSRecord {
 	ret := make([]DNSRecord, 0)
 	for _, r := range rs {
 		if f(r, t) {
@@ -118,7 +118,7 @@ func filterDNSRecords(rs []DNSRecord, t string, f func(DNSRecord, string) bool) 
 	return ret
 }
 
-func filterDNSRecsWithType(rec DNSRecord, t string) bool {
+func filterRecordsWithType(rec DNSRecord, t string) bool {
 	if rec.Type != t {
 		return false
 	}
