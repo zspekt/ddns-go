@@ -95,7 +95,7 @@ func Test_ipHasChanged(t *testing.T) {
 			args: args{
 				newIp: "192.168.169.169",
 				r: &testReadSeeker{
-					s: "100.010.1.04",
+					s: "100.10.1.4",
 					i: 0,
 				},
 			},
@@ -117,7 +117,7 @@ func Test_ipHasChanged(t *testing.T) {
 			args: args{
 				newIp: "1.1.1.1",
 				r: &testReadSeeker{
-					s: "100.010.1.04",
+					s: "100.10.1.4",
 					i: 123,
 				},
 			},

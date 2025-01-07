@@ -11,7 +11,7 @@ type CloudFlareAPI struct {
 	Client  *http.Client
 }
 
-type DNSRecord struct {
+type Record struct {
 	Comment    any       `json:"comment"`
 	Content    string    `json:"content"`
 	CreatedOn  time.Time `json:"created_on"`
@@ -29,7 +29,7 @@ type DNSRecord struct {
 	ZoneName   string    `json:"zone_name"`
 }
 
-type DNSZone struct {
+type Zone struct {
 	ID                  string    `json:"id"`
 	Name                string    `json:"name"`
 	Status              string    `json:"status"`
@@ -80,19 +80,19 @@ type DNSZone struct {
 	} `json:"plan"`
 }
 
-type DNSZones struct {
-	Result     []DNSZone  `json:"result"`
+type Zones struct {
+	Result     []Zone     `json:"result"`
 	ResultInfo ResultInfo `json:"result_info"`
 	CommonResponse
 }
 
-type DNSRecords struct {
-	Result     []DNSRecord `json:"result"`
-	ResultInfo ResultInfo  `json:"result_info"`
+type Records struct {
+	Result     []Record   `json:"result"`
+	ResultInfo ResultInfo `json:"result_info"`
 	CommonResponse
 }
 
-type DNSPutRequest struct {
+type PutRequest struct {
 	Comment  string   `json:"comment"`
 	Name     string   `json:"name"`
 	Proxied  bool     `json:"proxied"`
@@ -103,7 +103,7 @@ type DNSPutRequest struct {
 	Type     string   `json:"type"`
 }
 
-type DNSPutResponse struct {
+type PutResponse struct {
 	Result any `json:"result"`
 	Errors []struct {
 		Code    int    `json:"code"`

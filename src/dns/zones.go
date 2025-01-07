@@ -6,8 +6,8 @@ import (
 	"github.com/zspekt/ddns-go/pkg/utils"
 )
 
-func (api *CloudFlareAPI) getDNSZones() (*DNSZones, error) {
-	var DNSZones *DNSZones = new(DNSZones)
+func (api *CloudFlareAPI) getZones() (*Zones, error) {
+	var Zones *Zones = new(Zones)
 
 	request, err := newRequestWithToken("GET", api.BaseURL+"/zones/", api.Token, nil)
 	if err != nil {
@@ -19,10 +19,10 @@ func (api *CloudFlareAPI) getDNSZones() (*DNSZones, error) {
 		log.Fatal(err)
 	}
 
-	err = utils.DecodeJson(response.Body, DNSZones)
+	err = utils.DecodeJson(response.Body, Zones)
 	if err != nil {
 		log.Fatal("getZonesIDs", err)
 	}
-	err = checkForErrors(DNSZones.CommonResponse)
-	return DNSZones, err
+	err = checkForErrors(Zones.CommonResponse)
+	return Zones, err
 }
