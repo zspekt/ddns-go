@@ -28,7 +28,7 @@ func (api *CloudFlareAPI) UpdateRecord(ip string) error {
 		log.Fatal(err) // TODO: don't crash
 	}
 
-	filteredDNSRecords := filterRecords(DNSRecords.Result, "A", filterRecordsWithType)
+	filteredDNSRecords := filterRecords(DNSRecords.Result, filterRecordsWithType, "A")
 
 	fmt.Println("final filtered dns records ahead === === === === === === === ")
 	fmt.Println(pretty.Println(filteredDNSRecords))
@@ -104,7 +104,7 @@ func (api *CloudFlareAPI) putRecord(rec DNSRecord, ip string) (*http.Response, e
 	return api.Client.Do(req)
 }
 
-func filterRecords(rs []DNSRecord, t string, f func(DNSRecord, string) bool) []DNSRecord {
+func filterRecords(rs []DNSRecord, f func(DNSRecord, string) bool, t string) []DNSRecord {
 	ret := make([]DNSRecord, 0)
 	for _, r := range rs {
 		if f(r, t) {
