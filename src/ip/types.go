@@ -10,8 +10,8 @@ import (
 type Config struct {
 	Ctx      context.Context
 	IpChan   <-chan string
-	Filename string             // file that holds the most recent IP value
-	Api      *dns.CloudFlareAPI // TODO: should be interface (for easier testing)
+	Filename string // file that holds the most recent IP value
+	Api      dns.Api
 }
 
 // not passing the context to monitorAndUpdate() because once the check and
@@ -19,7 +19,7 @@ type Config struct {
 type config struct {
 	ip       string
 	filename string
-	api      *dns.CloudFlareAPI // TODO: should be interface (for easier testing)
+	api      dns.Api
 }
 
 type rwSeekTrunc interface {

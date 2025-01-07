@@ -10,7 +10,7 @@ import (
 	"syscall"
 )
 
-var ShutdownErr error = errors.New("got shutdown signal")
+var ShutdownErr error = errors.New("received shutdown signal")
 
 func Shutdown(sigs chan os.Signal, cancel context.CancelFunc) {
 	slog.Info("shutdown(): starting routine...")
