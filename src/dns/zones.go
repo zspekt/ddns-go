@@ -2,20 +2,19 @@ package dns
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/zspekt/ddns-go/pkg/utils"
 )
 
-func getDNSZones(client *http.Client, baseURL, token string) (*DNSZones, error) {
+func (api *CloudFlareAPI) getDNSZones() (*DNSZones, error) {
 	var DNSZones *DNSZones = new(DNSZones)
 
-	request, err := newRequestWithToken("GET", baseURL+"/zones/", token, nil)
+	request, err := newRequestWithToken("GET", api.BaseURL+"/zones/", api.Token, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := client.Do(request)
+	response, err := api.Client.Do(request)
 	if err != nil {
 		log.Fatal(err)
 	}

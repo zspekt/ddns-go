@@ -1,6 +1,15 @@
 package dns
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
+
+type CloudFlareAPI struct {
+	Token   string
+	BaseURL string
+	Client  *http.Client
+}
 
 type DNSRecord struct {
 	Comment    any       `json:"comment"`

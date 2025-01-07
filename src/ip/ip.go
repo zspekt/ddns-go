@@ -9,8 +9,6 @@ import (
 	"net/netip"
 	"os"
 	"strings"
-
-	"github.com/zspekt/ddns-go/src/dns"
 )
 
 // listens on channels c.ipChan for new IP value to hand off to monitorAndUpdate()
@@ -22,7 +20,7 @@ func MonitorAndUpdate(c *Config) {
 			err := handleIPCheck(&config{
 				ip:       ip,
 				filename: c.Filename,
-				token:    c.Token,
+				api:      c.Api,
 			})
 			if err != nil {
 				// TODO: handle error
@@ -47,7 +45,7 @@ func handleIPCheck(c *config) error {
 		return nil
 	}
 
-	err = dns.UpdateRecord(c.ip, c.token)
+	err = c.api.UpdateRecord(c.ip)
 	if err != nil {
 		return err
 	}
