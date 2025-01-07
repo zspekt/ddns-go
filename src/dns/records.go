@@ -89,7 +89,7 @@ func (api *CloudFlareAPI) putRecord(rec DNSRecord, ip string) (*http.Response, e
 	jsonPayload, err := json.Marshal(d)
 	r := bytes.NewReader(jsonPayload)
 
-	url := "https://api.cloudflare.com/client/v4/zones/" + rec.ZoneID + "/dns_records/" + rec.ID
+	url := api.BaseURL + "/zones/" + rec.ZoneID + "/dns_records/" + rec.ID
 	req, err := newRequestWithToken(
 		"PUT",
 		url,
