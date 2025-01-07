@@ -1,49 +1,34 @@
 package ip
 
 import (
-	"context"
 	"errors"
 	"io"
 	"io/fs"
+	"log"
 	"log/slog"
 	"net/netip"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/zspekt/ddns-go/src/dns"
 )
-
-type Config struct {
-	ctx      context.Context
-	ipChan   <-chan string
-	filename string // file that holds the most recent IP value
-	token    string // cloudflare api token to update the DNS record
-}
-
-// not passing the context to monitorAndUpdate() because once the check and
-// update IP logic starts, we do not want to shutdown until the fn has returned
-type config struct {
-	ip       string
-	filename string
-	token    string
-}
 
 // listens on channels c.ipChan for new IP value to hand off to monitorAndUpdate()
 // and c.ctx.Done() to gracefully shut down
 func MonitorAndUpdate(c *Config) {
 	for {
 		select {
-		case ip := <-c.ipChan:
+		case ip := <-c.IpChan:
 			err := handleIPCheck(&config{
 				ip:       ip,
-				filename: c.filename,
-				token:    c.token,
+				filename: c.Filename,
+				token:    c.Token,
 			})
 			if err != nil {
 				// TODO: handle error
+				log.Fatal(err)
 			}
-		case <-c.ctx.Done():
+		case <-c.Ctx.Done():
 			// TODO: shutdown logic
 		}
 	}
@@ -52,15 +37,12 @@ func MonitorAndUpdate(c *Config) {
 // checks the new IP against the stored value. if it differs, it will call
 // dns.UpdateDnsRecord()
 func handleIPCheck(c *config) error {
-	f, err := os.OpenFile(c.filename, os.O_CREATE|os.O_RDWR, 0666)
+	f, code, err := openOrCreate(c.filename)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-		}
 		return err
 	}
-	defer f.Close()
 
-	if !ipHasChanged(c.ip, f) {
+	if code == FILE_EXISTS && !ipHasChanged(c.ip, f) {
 		slog.Debug("IP hasn't changed", "IP", c.ip)
 		return nil
 	}
@@ -77,32 +59,61 @@ func handleIPCheck(c *config) error {
 	return nil
 }
 
-func ipHasChanged(newIp string, r io.Reader) bool {
-	slog.Debug("ipHasChanged() called...")
-	buf := make([]byte, 15)
-	_, err := r.Read(buf)
+const (
+	FILE_EXISTS  int = 1
+	FILE_CREATED int = 2
+)
+
+func openOrCreate(filename string) (f *os.File, code int, err error) {
+	_, err = os.Stat(filename)
+	flags := os.O_RDWR
+
+	switch err {
+	case nil:
+		code = FILE_EXISTS
+	case fs.ErrNotExist:
+		flags |= os.O_CREATE
+		code = FILE_CREATED
+	default:
+		return nil, 0, err
+	}
+	f, err = os.OpenFile(filename, flags, 0666)
 	if err != nil {
-		if !errors.Is(err, io.EOF) {
-			slog.Error("ipHasChanged(): error reading file", "error", err)
-			return false
-		}
+		return nil, 0, err
+	}
+	return f, code, nil
+}
+
+func ipHasChanged(newIp string, r io.ReadSeeker) bool {
+	slog.Debug("ipHasChanged() called...")
+	buf := make([]byte, 64)
+
+	_, err := r.Seek(0, 0)
+	if err != nil {
+		return true
 	}
 
-	c := strings.TrimSuffix(string(buf), "\n\x00")
-	oldIp, err := netip.ParseAddr(c)
+	n, err := r.Read(buf)
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
+			slog.Error("ipHasChanged(): error reading from reader", "error", err)
+			return true
+		}
+		slog.Info("ipHasChanged(): reader is empty")
+		return true
+	}
+	buf = buf[:n]
+
+	parsed := strings.ReplaceAll(strings.TrimSpace(string(buf)), "\n", "")
+
+	oldIp, err := netip.ParseAddr(parsed)
 	if err != nil {
 		slog.Error("ipHasChanged(): error parsing address", "error", err, "ip", string(buf))
 	}
 	return !strings.EqualFold(newIp, oldIp.String())
 }
 
-func ipRegexp(b []byte) []byte {
-	// netip.ParseAddr(s string)
-	r := regexp.MustCompile(`[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}`)
-	return r.Find(b)
-}
-
-func updateIP(f *os.File, ip string) error {
+func updateIP(f rwSeekTrunc, ip string) error {
 	err := f.Truncate(0)
 	if err != nil {
 		return err
