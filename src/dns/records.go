@@ -3,12 +3,9 @@ package dns
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
-
-	"github.com/kr/pretty"
 
 	"github.com/zspekt/ddns-go/pkg/utils"
 )
@@ -30,9 +27,6 @@ func (api *CloudFlareAPI) UpdateRecord(ip string) error {
 
 	filteredRecords := filterRecords(Records.Result, filterRecordsWithType, "A")
 
-	fmt.Println("final filtered dns records ahead === === === === === === === ")
-	fmt.Println(pretty.Println(filteredRecords))
-
 	for _, d := range filteredRecords {
 		r, err := api.putRecord(d, ip)
 		if err != nil {
@@ -44,7 +38,6 @@ func (api *CloudFlareAPI) UpdateRecord(ip string) error {
 		if err != nil {
 			log.Fatal("error decoding final response")
 		}
-		fmt.Println(pretty.Println(respp))
 	}
 	return nil
 }

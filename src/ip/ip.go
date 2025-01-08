@@ -3,7 +3,6 @@ package ip
 import (
 	"errors"
 	"io"
-	"io/fs"
 	"log"
 	"log/slog"
 	"net/netip"
@@ -63,16 +62,20 @@ const (
 )
 
 func openOrCreate(filename string) (f *os.File, code int, err error) {
+	slog.Debug("openOrCreate(): called...")
 	_, err = os.Stat(filename)
 	flags := os.O_RDWR
 
-	switch err {
+	switch err.(type) {
 	case nil:
+		slog.Debug("openOrCreate(): file already exists")
 		code = FILE_EXISTS
-	case fs.ErrNotExist:
+	case *os.PathError:
+		slog.Debug("openOrCreate(): file doesn't exist")
 		flags |= os.O_CREATE
 		code = FILE_CREATED
 	default:
+		slog.Error("openOrCreate(): unexpected error. returning...", "error", err)
 		return nil, 0, err
 	}
 	f, err = os.OpenFile(filename, flags, 0666)
@@ -83,7 +86,7 @@ func openOrCreate(filename string) (f *os.File, code int, err error) {
 }
 
 func ipHasChanged(newIp string, r io.ReadSeeker) bool {
-	slog.Debug("ipHasChanged() called...")
+	slog.Debug("ipHasChanged(): called...")
 	buf := make([]byte, 64)
 
 	_, err := r.Seek(0, 0)
