@@ -1,0 +1,7 @@
+CLOUDFLARE_API_TOKEN
+ddns_script.sh
+.env
+.air.toml
+docker-compose.yml
+ip.txt
+.git*
