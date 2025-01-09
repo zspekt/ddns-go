@@ -1,3 +1,4 @@
 .env
 test*.txt
 tmp
+CLOUDFLARE_API_TOKEN

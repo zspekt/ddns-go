@@ -26,7 +26,7 @@ func MonitorAndUpdate(c *Config) {
 				log.Fatal(err)
 			}
 		case <-c.Ctx.Done():
-			// TODO: shutdown logic
+			slog.Info("MonitorAndUpdate(): received shutdown singal. returning...")
 		}
 	}
 }

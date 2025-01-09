@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/zspekt/ddns-go/pkg/utils"
@@ -35,12 +36,9 @@ envs:
 	FILENAME (def ip.txt)  -> file to store the IP value in
 */
 func Config() *Cfg {
-	setLogger()
+	logger()
 
-	token, ok := os.LookupEnv("CLOUDFLARE_API_TOKEN")
-	if !ok || token == "" {
-		log.Fatal("no token found in .env")
-	}
+	token := token()
 	baseURL := "https://api.cloudflare.com/client/v4"
 
 	api := &dns.CloudFlareAPI{
@@ -75,7 +73,7 @@ func Config() *Cfg {
 	}
 }
 
-func setLogger() {
+func logger() {
 	// https://stackoverflow.com/a/76970969
 	lvl := new(slog.LevelVar)
 	lvl.Set(slog.LevelInfo)
@@ -97,4 +95,20 @@ func setLogger() {
 	}
 	lvl.Set(v)
 	slog.Info("log level set", "logLevel", l)
+}
+
+func token() string {
+	token, ok := os.LookupEnv("CLOUDFLARE_API_TOKEN")
+	if ok && token != "" {
+		return strings.TrimSpace(token)
+	}
+
+	slog.Info("no token env var found")
+
+	b, err := os.ReadFile("/run/secrets/CLOUDFLARE_API_TOKEN")
+	if err != nil {
+		log.Fatal("no token found in .env or in /run/secrets")
+	}
+
+	return strings.TrimSpace(string(b))
 }
