@@ -1,0 +1,27 @@
+services:
+  ddns:
+    image: zspekt/ddns:1.0
+
+    networks:
+      - bridge
+
+    ports:
+      - "48910:8080"
+
+    restart: always
+
+    environment:
+      ADDR: "0.0.0.0"
+      PORT: "8080"
+      LOG_LEVEL: "DEBUG"
+
+    secrets:
+      - CLOUDFLARE_API_TOKEN
+
+networks:
+  bridge:
+    driver: bridge
+
+secrets:
+  CLOUDFLARE_API_TOKEN:
+    file: ./CLOUDFLARE_API_TOKEN
