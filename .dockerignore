@@ -1,5 +1,5 @@
 CLOUDFLARE_API_TOKEN
-ddns_script.sh
+*.sh
 .env
 .air.toml
 docker-compose.yml
